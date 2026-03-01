@@ -5,7 +5,7 @@ Este repositorio puede integrarse con un flujo n8n que automatiza la creación/a
 ### Archivo de workflow
 El workflow utilizado (JSON para importar en n8n) contiene un Webhook que recibe prompts y ejecuta: petición a un agente Django, invocación de OpenHands y validaciones posteriores. Importa el JSON en n8n para reproducir el flujo.
 
-> Nota: el archivo del workflow fue provisto por el autor y referencia endpoints externos; antes de importar, revisa y sustituye las URLs y credenciales por tus valores seguros.
+> Nota: el archivo del workflow fue provisto por mi persona y referencia endpoints externos; antes de importar (o al hacerlo), revisa y sustituye las URLs y credenciales por tus valores seguros.
 
 ### Requisitos / credenciales en n8n
 - `Header Auth` para la API de OpenHands / All-Hands (token en header).
@@ -14,10 +14,11 @@ El workflow utilizado (JSON para importar en n8n) contiene un Webhook que recibe
 
 ### Cómo probar localmente
 1. Importa el workflow en n8n.
-2. Configura credenciales.
+2. Configura tus credenciales.
 3. Activa el workflow.
 4. Llama al webhook con JSON:
 ```json
 {
   "prompt": "Crea el archivo Python michi.py en el repositorio. El código debe ser el juego michi. Al finalizar, imprime todo el código generado aquí en el chat y haz git push a la rama main."
 }
+> Nota: Es importante aclarar que se puede pedir lo que se desee a la hora de la automatización, ya sea una aplicación o un sistema con poca complejidad.
