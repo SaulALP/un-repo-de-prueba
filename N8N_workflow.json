@@ -1,0 +1,263 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "challenge",
+        "options": {}
+      },
+      "id": "node-webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -640,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://{YOUR_AGENT_HOST}/api/generate/",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "prompt",
+              "value": "{{ $json.body.prompt }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-agente-django",
+      "name": "Agente Django (High Code)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -432,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "{OPENHANDS_API_URL}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"initial_user_msg\": \"Genera un archivo Python llamado michi.py que implemente el juego Tic-Tac-Toe (michi). Devuelve únicamente el contenido del archivo en el campo de respuesta del API. No incluyas tokens, credenciales ni instrucciones para hacer push automático a repositorios.\",\n  \"repository\": \"{YOUR_REPOSITORY}\",\n  \"selected_branch\": \"{TARGET_BRANCH}\"\n}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "node-iniciar-openhands",
+      "name": "Iniciar OpenHands",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -432,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "minutes"
+      },
+      "id": "node-wait",
+      "name": "Esperar Ejecución",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {}
+      },
+      "id": "node-merge",
+      "name": "Unir Respuestas",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        272,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "{YOUR_LANG_MODEL}",
+          "mode": "list",
+          "cachedResultName": "{YOUR_LANG_MODEL}"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=// INSTRUCCIÓN PARA EL SISTEMA:\n// Asigna a este modelo el rol de evaluador experto.\nCompara dos soluciones de código (A y B) que se reciben como entradas y genera un informe estructurado con: criterio de comparación, puntos fuertes/débiles de cada solución y un veredicto. Responde en formato textual. No incluyas ni solicites tokens, credenciales ni instrucciones para realizar pushes automáticos.\n\n// DATOS DE ENTRADA:\nSOLUCIÓN A:\n{{ $('Agente Django (High Code)').item.json.resultado || $('Agente Django (High Code)').item.json.output }}\n---\nSOLUCIÓN B:\n{{ $('Iniciar OpenHands').item.json }}\n\n// SALIDA REQUERIDA:\nLista estructurada con criterios y veredicto final. Evita formatos que requieran ejecutar código u operaciones externas.\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        512,
+        -48
+      ],
+      "name": "Juez IA (Comparativa)"
+    },
+    {
+      "parameters": {
+        "jsCode": "let geminiOutput = $json.text || $json.reporte_final || $json.content || $json || \"\";\n\nif (typeof geminiOutput === \"string\") {\n    try {\n        geminiOutput = JSON.parse(geminiOutput);\n    } catch (err) {\n        geminiOutput = [{ value: geminiOutput }];\n    }\n}\n\nif (!Array.isArray(geminiOutput)) {\n    geminiOutput = [geminiOutput];\n}\n\nreturn geminiOutput.map(item => ({ json: item }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        816,
+        -48
+      ],
+      "id": "node-code-js",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "url": "{RAW_GITHUB_URL}/calc.py",
+        "authentication": "predefinedCredentialType",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        16,
+        96
+      ],
+      "id": "node-http-github",
+      "name": "HTTP Request (repo file)"
+    },
+    {
+      "parameters": {
+        "operation": "html",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1024,
+        -48
+      ],
+      "id": "node-convert",
+      "name": "Convert to File"
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Iniciar OpenHands",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente Django (High Code)": {
+      "main": [
+        []
+      ]
+    },
+    "Iniciar OpenHands": {
+      "main": [
+        [
+          {
+            "node": "Esperar Ejecución",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esperar Ejecución": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request (repo file)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unir Respuestas": {
+      "main": [
+        [
+          {
+            "node": "Juez IA (Comparativa)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Juez IA (Comparativa)": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request (repo file)": {
+      "main": [
+        []
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
